@@ -102,9 +102,10 @@ private:
 	//linking Space node
 	Space* linkSpace(Space* head, Space* startNode, int endOffset, Direction dir) {
 		Space* temp = startNode; //임시 pointer
-
+		int startOffset = startNode->offset + nextOffset(dir);
 		//(WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH + 1) * 6
 
+		//if (dir == Direction::DOWN || dir == Direction::RIGHT) return linkSpace(head , temp, startOffset, endOffset, dir);
 #if bug //아래의for문을 while문으로 바꾸고 싶은데, 로직이 분명 같은 것 같은데 작동이 잘 안된다..왜지//
 		int offset = startNode->offset + nextOffset(dir);
   
@@ -119,7 +120,22 @@ private:
 			if (endOffset <= offset) break;
 		}
 #endif
-		for (int i = startNode->offset + nextOffset(dir); endOffset <= i; i += nextOffset(dir))
+		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
+		{
+			Space* node = new Space;
+			node->createSpace(head, temp, i, map);
+			temp = node;
+		}
+
+		return temp; //return lastNode
+	}
+
+	Space* linkSpace2(Space* head, Space* startNode, int endOffset, Direction dir)
+	{
+		Space* temp = startNode; //임시 pointer
+		int startOffset = startNode->offset + nextOffset(dir);
+
+		for (int i = startOffset; i < HEIGHT ; i += ((WIDTH + 1) * 6+1))
 		{
 			Space* node = new Space;
 			node->createSpace(head, temp, i, map);
@@ -139,13 +155,25 @@ public:
 	//함수 내부에서 space들을 link 시킨다.
 	void createMap()
 	{
+		//edge(0,0) = startPoint
 		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2, map);
 
+		//rightSide
 		Space* lastSpace = linkSpace(head, head, WIDTH,Direction::UP);
 		
+		//edge(0,1)
 		Space* Edge = new Space;
 		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1, map);
+
+		//upSide
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
+
+		//edge(-1,1)
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT), map);
+
+		//leftSide
+		//lastSpace = linkSpace(head, Edge, HEIGHT, Direction::DOWN);
+		lastSpace = linkSpace2(head, Edge, HEIGHT, Direction::DOWN);
 
 #if debug
 		for (int i = 6; i < WIDTH - 6; i += 6)
