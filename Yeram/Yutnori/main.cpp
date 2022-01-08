@@ -147,26 +147,8 @@ public:
 		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1, map);
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
-#if debug
-		for (int i = 6; i < WIDTH - 6; i += 6)
-		{
-			//up
-			Space* node = new Space;
-			node->createSpace(head, temp, i, map);
-
-			//down
-			node = new Space;
-			node->createSpace(head, temp, i + (WIDTH + 1) * (HEIGHT - 2) + 1, map);
-
-			//left
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * i + 1, map);
-
-			//right
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * (i + 1) - 2, map);
-		}
-#endif	
+		Edge = new Space;
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT), map);
 		return;
 	}
 
