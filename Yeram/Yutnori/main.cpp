@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <string>
 using namespace std;
 
 #define WIDTH 32
@@ -45,9 +46,9 @@ typedef struct Space
 		map[offset + secondline + 1] = '.';
 	}
 
-	void movePiece(char* map)
+	void movePiece(char* map, char shape)
 	{
-		map[offset] = 'C';
+		map[offset] = shape;
 	}
 }Space;
 
@@ -167,62 +168,59 @@ public:
 		//downSide
 		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
-#if debug
-		for (int i = 6; i < WIDTH - 6; i += 6)
-		{
-			//up
-			Space* node = new Space;
-			node->createSpace(head, temp, i, map);
-
-			//down
-			node = new Space;
-			node->createSpace(head, temp, i + (WIDTH + 1) * (HEIGHT - 2) + 1, map);
-
-			//left
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * i + 1, map);
-
-			//right
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * (i + 1) - 2, map);
-		}
-#endif	
 		return;
 	}
 
 	char* getMap() { return map; }
 
 	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
-	void moveNext(int count)
+	void moveNext(int count, char shape)
 	{
 		Space* tmp=head;
 		while (1)
 		{
 			if (count == 0)
 			{
-				tmp->movePiece(map);
+				tmp->movePiece(map, shape);
 				break;
 			}
 			
 			tmp = tmp->link;		
 			count--;
 		}
-
-		
 	}
 };
-
-
 
 int main()
 {
 	int count;
+	string turn;
 	Map map = Map();
+	int movedsteps[4] = {0,};//ABCD
 	map.createMap();
-	
-	printf("9이하의 숫자 입력\n");
-	scanf("%d", &count);
-	map.moveNext(count);
 
+	//횟수
+	scanf("%d ", &count);
+
+	while (count != 0)
+	{
+		getline(cin, turn);
+		int index = turn.front() - 'A';
+		for (auto data : turn)
+		{
+			if (data == 'F') movedsteps[index]++;
+		}
+		//map.moveNext(movedsteps[index], turn.front());
+		count--;
+	}
+
+	for (auto player : movedsteps)
+	{
+		static int i = 0; //static 써도 괜찮은강..? 아님 그냥 for문 index로 바꿔버릴까 고민중
+		if (player == 0) continue;
+		map.moveNext(player, 'A' + i);
+		i++;
+	}
+	
 	printf("%s", map.getMap());
 }
