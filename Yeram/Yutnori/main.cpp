@@ -57,14 +57,14 @@ typedef struct Map
 private:
 	char* map;
 	Space* head;
-
+	//대각선 WIDTH * 6;
 	int nextOffset(Direction dir) {
 		switch (dir)
 		{
 		case Direction::UP:
 			return -(WIDTH + 1) * 6;
 		case Direction::DOWN:
-			return (WIDTH + 1) * 6;
+			return (WIDTH + 1) * 6 + 1;
 		case Direction::RIGHT:
 			return 6;
 		case Direction::LEFT:
@@ -103,23 +103,9 @@ private:
 	Space* linkSpace(Space* head, Space* startNode, int endOffset, Direction dir) {
 		Space* temp = startNode; //임시 pointer
 		int startOffset = startNode->offset + nextOffset(dir);
-		//(WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH + 1) * 6
 
-		//if (dir == Direction::DOWN || dir == Direction::RIGHT) return linkSpace(head , temp, startOffset, endOffset, dir);
-#if bug //아래의for문을 while문으로 바꾸고 싶은데, 로직이 분명 같은 것 같은데 작동이 잘 안된다..왜지//
-		int offset = startNode->offset + nextOffset(dir);
-  
-		while (true) {
-			
-			Space* node = new Space;
-			node->createSpace(head, temp, offset, map);
-			temp = node;
+		if (dir == Direction::DOWN || dir == Direction::RIGHT) return linkSpace(head , temp, startOffset, endOffset, dir);
 
-			offset += nextOffset(dir);
-
-			if (endOffset <= offset) break;
-		}
-#endif
 		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
 		{
 			Space* node = new Space;
@@ -130,16 +116,15 @@ private:
 		return temp; //return lastNode
 	}
 
-	Space* linkSpace2(Space* head, Space* startNode, int endOffset, Direction dir)
+	Space* linkSpace(Space* head, Space* temp, int startOffset,int endOffset, Direction dir)
 	{
-		Space* temp = startNode; //임시 pointer
-		int startOffset = startNode->offset + nextOffset(dir);
-
-		for (int i = startOffset; i < HEIGHT ; i += ((WIDTH + 1) * 6+1))
+		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
+		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
 			Space* node = new Space;
 			node->createSpace(head, temp, i, map);
 			temp = node;
+			if (i != 0 && dir == Direction::DOWN) i--;
 		}
 
 		return temp; //return lastNode
@@ -169,11 +154,18 @@ public:
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
 		//edge(-1,1)
+		Edge = new Space;
 		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT), map);
 
 		//leftSide
-		//lastSpace = linkSpace(head, Edge, HEIGHT, Direction::DOWN);
-		lastSpace = linkSpace2(head, Edge, HEIGHT, Direction::DOWN);
+		lastSpace = linkSpace(head, Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
+
+		//edge(-1,0)
+		Edge = new Space;
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1, map);
+
+		//downSide
+		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
 #if debug
 		for (int i = 6; i < WIDTH - 6; i += 6)
@@ -206,7 +198,6 @@ public:
 		Space* tmp=head;
 		while (1)
 		{
-			printf("OFSSET: %d\n", tmp->offset);
 			if (count == 0)
 			{
 				tmp->movePiece(map);
@@ -234,6 +225,4 @@ int main()
 	map.moveNext(count);
 
 	printf("%s", map.getMap());
-
-	
 }
