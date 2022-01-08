@@ -6,6 +6,10 @@ using namespace std;
 #define HEIGHT 32
 #define SIZE 33*32
 
+typedef struct Token;
+typedef struct Map;
+typedef struct Space;
+
 enum class Direction {
 	UP,
 	DOWN,
@@ -45,18 +49,32 @@ typedef struct Space
 		map[offset + secondline + 1] = '.';
 	}
 
-	void movePiece(char* map)
-	{
-		map[offset] = 'C';
-	}
 }Space;
 
+typedef struct Token
+{
+	char shape;
+	Space* space; //위치
+public:
+	Token(char shape) : shape(shape)
+	{
+		//space = map->gethead();
+	}//모든 토큰은 map의 head에서 시작한다.
+
+	int getOffset() { return space->offset; }
+	const char getShape() { return shape; };
+	void setSpace(Space* space) { this->space = space; }
+	const Space* getSpace() { return space; }
+
+}Token;
 
 typedef struct Map
 {
 private:
 	char* map;
 	Space* head;
+	vector<Token*> tokens;
+	char tokenShape;
 	//대각선 WIDTH * 6;
 	int nextOffset(Direction dir) {
 		switch (dir)
@@ -118,7 +136,6 @@ private:
 
 	Space* linkSpace(Space* head, Space* temp, int startOffset,int endOffset, Direction dir)
 	{
-		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
 			Space* node = new Space;
@@ -129,13 +146,16 @@ private:
 
 		return temp; //return lastNode
 	}
-public:
-	Map():map(new char[SIZE + 1]),head(new Space)
+public:	
+	Map():map(new char[SIZE + 1]),head(new Space), tokenShape(65)
 	{
 		memset(map, ' ', SIZE);
 		map[SIZE] = '\0';
 		drawLine();
 	}
+
+	char* getMap() { return map; }
+	Space* gethead() { return head; }
 
 	//함수 내부에서 space들을 link 시킨다.
 	void createMap()
@@ -189,40 +209,67 @@ public:
 #endif	
 		return;
 	}
+	
+	void updateToken(Token* token){ map[token->getOffset()] = token->getShape(); }
 
-	char* getMap() { return map; }
-
-	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
-	void moveNext(int count)
+	Token* getToken(char shape)
 	{
-		Space* tmp=head;
-		while (1)
+		if (tokens.size() == 0) tokens.push_back(new Token(tokenShape));
+
+		for (auto token : tokens)
 		{
-			if (count == 0)
+			//해당 토큰이 map에 존재 하면
+			if (token->getShape() == shape)
 			{
-				tmp->movePiece(map);
-				break;
+				return token;
 			}
-			
-			tmp = tmp->link;		
-			count--;
+
 		}
 
+		//존재하지 않으면 새 토큰 생성
+		Token* newtoken = new Token(tokenShape++);
+		tokens.push_back(newtoken);
+		return newtoken;
+	}
+
+	void moveToken(int step)
+	{
+		Token* token = getToken(tokenShape);
+		const Space* prev = token->getSpace();
+		while (1)
+		{
+			if (step == 0)
+			{
+				updateToken(token);
+				//space = tmp;
+				return;
+			}
+
+			//setSpace
+			token->setSpace(token->getSpace()->link);
+			step--;
+		}
 		
 	}
-};
-
+	
+}Map;
 
 
 int main()
 {
 	int count;
-	Map map = Map();
-	map.createMap();
+	vector<Token*> tokens;
+	Map* map = new Map();
+	map->createMap();
 	
-	printf("9이하의 숫자 입력\n");
+	printf("20이하의 숫자 입력\n");
 	scanf("%d", &count);
-	map.moveNext(count);
 
-	printf("%s", map.getMap());
+	map->moveToken(count);
+	//map->moveToken('A',count, map);
+	//printf("\n %s", map->getMap());
+	//map->moveToken('A', 1,  map);
+	
+
+	printf("%s", map->getMap());
 }
