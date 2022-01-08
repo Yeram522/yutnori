@@ -218,7 +218,7 @@ int main()
 	{
 		static int i = 0; //static 써도 괜찮은강..? 아님 그냥 for문 index로 바꿔버릴까 고민중
 		if (player == 0) continue;
-		map.moveNext(player, 'A' + i);
+		if(player <= 20) map.moveNext(player, 'A' + i);	 //20->한바퀴 의미
 		i++;
 	}
 	
