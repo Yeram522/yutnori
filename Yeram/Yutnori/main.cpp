@@ -1,14 +1,11 @@
 #include <iostream>
 #include <vector>
+#include <string>
 using namespace std;
 
 #define WIDTH 32
 #define HEIGHT 32
 #define SIZE 33*32
-
-typedef struct Token;
-typedef struct Map;
-typedef struct Space;
 
 enum class Direction {
 	UP,
@@ -49,32 +46,18 @@ typedef struct Space
 		map[offset + secondline + 1] = '.';
 	}
 
+	void movePiece(char* map, char shape)
+	{
+		map[offset] = shape;
+	}
 }Space;
 
-typedef struct Token
-{
-	char shape;
-	Space* space; //위치
-public:
-	Token(char shape) : shape(shape)
-	{
-		//space = map->gethead();
-	}//모든 토큰은 map의 head에서 시작한다.
-
-	int getOffset() { return space->offset; }
-	const char getShape() { return shape; };
-	void setSpace(Space* space) { this->space = space; }
-	const Space* getSpace() { return space; }
-
-}Token;
 
 typedef struct Map
 {
 private:
 	char* map;
 	Space* head;
-	vector<Token*> tokens;
-	char tokenShape;
 	//대각선 WIDTH * 6;
 	int nextOffset(Direction dir) {
 		switch (dir)
@@ -136,6 +119,7 @@ private:
 
 	Space* linkSpace(Space* head, Space* temp, int startOffset,int endOffset, Direction dir)
 	{
+		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
 			Space* node = new Space;
@@ -146,16 +130,13 @@ private:
 
 		return temp; //return lastNode
 	}
-public:	
-	Map():map(new char[SIZE + 1]),head(new Space), tokenShape(65)
+public:
+	Map():map(new char[SIZE + 1]),head(new Space)
 	{
 		memset(map, ' ', SIZE);
 		map[SIZE] = '\0';
 		drawLine();
 	}
-
-	char* getMap() { return map; }
-	Space* gethead() { return head; }
 
 	//함수 내부에서 space들을 link 시킨다.
 	void createMap()
@@ -187,89 +168,59 @@ public:
 		//downSide
 		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
-#if debug
-		for (int i = 6; i < WIDTH - 6; i += 6)
-		{
-			//up
-			Space* node = new Space;
-			node->createSpace(head, temp, i, map);
-
-			//down
-			node = new Space;
-			node->createSpace(head, temp, i + (WIDTH + 1) * (HEIGHT - 2) + 1, map);
-
-			//left
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * i + 1, map);
-
-			//right
-			node = new Space;
-			node->createSpace(head, temp, (WIDTH + 1) * (i + 1) - 2, map);
-		}
-#endif	
 		return;
 	}
-	
-	void updateToken(Token* token){ map[token->getOffset()] = token->getShape(); }
 
-	Token* getToken(char shape)
+	char* getMap() { return map; }
+
+	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
+	void moveNext(int count, char shape)
 	{
-		if (tokens.size() == 0) tokens.push_back(new Token(tokenShape));
-
-		for (auto token : tokens)
-		{
-			//해당 토큰이 map에 존재 하면
-			if (token->getShape() == shape)
-			{
-				return token;
-			}
-
-		}
-
-		//존재하지 않으면 새 토큰 생성
-		Token* newtoken = new Token(tokenShape++);
-		tokens.push_back(newtoken);
-		return newtoken;
-	}
-
-	void moveToken(int step)
-	{
-		Token* token = getToken(tokenShape);
-		const Space* prev = token->getSpace();
+		Space* tmp=head;
 		while (1)
 		{
-			if (step == 0)
+			if (count == 0)
 			{
-				updateToken(token);
-				//space = tmp;
-				return;
+				tmp->movePiece(map, shape);
+				break;
 			}
-
-			//setSpace
-			token->setSpace(token->getSpace()->link);
-			step--;
+			
+			tmp = tmp->link;		
+			count--;
 		}
-		
 	}
-	
-}Map;
-
+};
 
 int main()
 {
 	int count;
-	vector<Token*> tokens;
-	Map* map = new Map();
-	map->createMap();
-	
-	printf("20이하의 숫자 입력\n");
-	scanf("%d", &count);
+	string turn;
+	Map map = Map();
+	int movedsteps[4] = {0,};//ABCD
+	map.createMap();
 
-	map->moveToken(count);
-	//map->moveToken('A',count, map);
-	//printf("\n %s", map->getMap());
-	//map->moveToken('A', 1,  map);
-	
+	//횟수
+	scanf("%d ", &count);
 
-	printf("%s", map->getMap());
+	while (count != 0)
+	{
+		getline(cin, turn);
+		int index = turn.front() - 'A';
+		for (auto data : turn)
+		{
+			if (data == 'F') movedsteps[index]++;
+		}
+		//map.moveNext(movedsteps[index], turn.front());
+		count--;
+	}
+
+	for (auto player : movedsteps)
+	{
+		static int i = 0; //static 써도 괜찮은강..? 아님 그냥 for문 index로 바꿔버릴까 고민중
+		if (player == 0) continue;
+		if(player <= 20) map.moveNext(player, 'A' + i);	 //20->한바퀴 의미
+		i++;
+	}
+	
+	printf("%s", map.getMap());
 }
