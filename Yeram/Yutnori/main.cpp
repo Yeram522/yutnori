@@ -6,6 +6,13 @@ using namespace std;
 #define HEIGHT 32
 #define SIZE 33*32
 
+enum class Direction {
+	UP,
+	DOWN,
+	RIGHT,
+	LEFT
+};
+
 //part of Map -> map의 구성요소이다.
 typedef struct Space
 {
@@ -50,6 +57,23 @@ typedef struct Map
 private:
 	char* map;
 	Space* head;
+
+	int nextOffset(Direction dir) {
+		switch (dir)
+		{
+		case Direction::UP:
+			return -(WIDTH + 1) * 6;
+		case Direction::DOWN:
+			return (WIDTH + 1) * 6;
+		case Direction::RIGHT:
+			return 6;
+		case Direction::LEFT:
+			return -6;
+		default:
+			break;
+		}
+	}
+
 	//draw line of map
 	void drawLine()
 	{
@@ -76,15 +100,33 @@ private:
 	}
 
 	//linking Space node
-	void linkSpace(Space* head, Space* startNode) {
+	Space* linkSpace(Space* head, Space* startNode, int endOffset, Direction dir) {
 		Space* temp = startNode; //임시 pointer
 
-		for (int i = (WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH + 1) * 6; WIDTH < i; i -= (WIDTH + 1) * 6)
+		//(WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH + 1) * 6
+
+#if bug //아래의for문을 while문으로 바꾸고 싶은데, 로직이 분명 같은 것 같은데 작동이 잘 안된다..왜지//
+		int offset = startNode->offset + nextOffset(dir);
+  
+		while (true) {
+			
+			Space* node = new Space;
+			node->createSpace(head, temp, offset, map);
+			temp = node;
+
+			offset += nextOffset(dir);
+
+			if (endOffset <= offset) break;
+		}
+#endif
+		for (int i = startNode->offset + nextOffset(dir); endOffset <= i; i += nextOffset(dir))
 		{
 			Space* node = new Space;
 			node->createSpace(head, temp, i, map);
 			temp = node;
 		}
+
+		return temp; //return lastNode
 	}
 public:
 	Map():map(new char[SIZE + 1]),head(new Space)
@@ -99,7 +141,11 @@ public:
 	{
 		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2, map);
 
-		linkSpace(head, head);
+		Space* lastSpace = linkSpace(head, head, WIDTH,Direction::UP);
+		
+		Space* Edge = new Space;
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1, map);
+		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
 #if debug
 		for (int i = 6; i < WIDTH - 6; i += 6)
@@ -155,7 +201,7 @@ int main()
 	Map map = Map();
 	map.createMap();
 	
-	printf("4이하의 숫자 입력\n");
+	printf("9이하의 숫자 입력\n");
 	scanf("%d", &count);
 	map.moveNext(count);
 
