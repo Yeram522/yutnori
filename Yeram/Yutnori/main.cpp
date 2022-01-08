@@ -1,11 +1,12 @@
 #include <iostream>
 #include <vector>
+using namespace std;
 
 #define WIDTH 32
 #define HEIGHT 32
 #define SIZE 33*32
-using namespace std;
 
+//part of Map -> map의 구성요소이다.
 typedef struct Space
 {
 	bool isEdge;//모서리인지 아닌지.
@@ -15,6 +16,9 @@ typedef struct Space
 
 	void createSpace(Space* head, Space* prevNode, int offset, char* map,bool isEdge = false)
 	{
+		//headnode,prevnode NULL 체크
+		if (head == NULL || prevNode == NULL) exit(1);
+
 		this->isEdge = isEdge; 
 		this->offset = offset;
 
@@ -40,23 +44,15 @@ typedef struct Space
 	}
 }Space;
 
+
 typedef struct Map
 {
+private:
 	char* map;
 	Space* head;
-
-	Map()
+	//draw line of map
+	void drawLine()
 	{
-		map = new char[SIZE + 1];
-		head = new Space;
-		
-	}
-
-	char* drawMap()
-	{
-		memset(map, ' ', SIZE);
-		map[SIZE] = '\0';
-
 		//DrawLine
 		int diagcount = 0;//diagonal count
 		for (int i = 0; i < SIZE; i++)
@@ -76,21 +72,34 @@ typedef struct Map
 					map[(i + WIDTH) - diagcount] = '/';
 				}
 			}
-		}
+		}	
+	}
 
-		//DrawSpace
-		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2, map);
-		Space* temp = head; //임시 pointer
+	//linking Space node
+	void linkSpace(Space* head, Space* startNode) {
+		Space* temp = startNode; //임시 pointer
 
-		/*Space* node = new Space;
-		node->createSpace(head, temp, (WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH+1)*6, map);*/
-		//up
 		for (int i = (WIDTH + 1) * (HEIGHT - 1) - 2 - (WIDTH + 1) * 6; WIDTH < i; i -= (WIDTH + 1) * 6)
 		{
 			Space* node = new Space;
 			node->createSpace(head, temp, i, map);
 			temp = node;
 		}
+	}
+public:
+	Map():map(new char[SIZE + 1]),head(new Space)
+	{
+		memset(map, ' ', SIZE);
+		map[SIZE] = '\0';
+		drawLine();
+	}
+
+	//함수 내부에서 space들을 link 시킨다.
+	void createMap()
+	{
+		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2, map);
+
+		linkSpace(head, head);
 
 #if debug
 		for (int i = 6; i < WIDTH - 6; i += 6)
@@ -112,16 +121,19 @@ typedef struct Map
 			node->createSpace(head, temp, (WIDTH + 1) * (i + 1) - 2, map);
 		}
 #endif	
-		return map;
+		return;
 	}
 
+	char* getMap() { return map; }
+
+	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
 	void moveNext(int count)
 	{
 		Space* tmp=head;
 		while (1)
 		{
 			printf("OFSSET: %d\n", tmp->offset);
-			if (count == 1)
+			if (count == 0)
 			{
 				tmp->movePiece(map);
 				break;
@@ -141,13 +153,13 @@ int main()
 {
 	int count;
 	Map map = Map();
-	map.drawMap();
+	map.createMap();
 	
 	printf("4이하의 숫자 입력\n");
 	scanf("%d", &count);
 	map.moveNext(count);
 
-	printf("%s", map.map);
+	printf("%s", map.getMap());
 
 	
 }
