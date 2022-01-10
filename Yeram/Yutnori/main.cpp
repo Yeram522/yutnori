@@ -62,11 +62,6 @@ typedef struct Linker
 {
 private:
 	Space* head;
-public:
-	Linker() :head(new Space(head, head, (WIDTH + 1)* (HEIGHT - 1) - 2))
-	{}
-
-	~Linker() { delete head; }
 
 	void linkPrevNode(Space* node, Space* prevNode)
 	{
@@ -103,8 +98,45 @@ public:
 
 		return temp; //return lastNode
 	}
+public:
+	Linker() :head(new Space(head, head, (WIDTH + 1)* (HEIGHT - 1) - 2))
+	{}
+
+	~Linker() { delete head; }
 
 	Space* getHead()  const  { return head; }
+
+	//함수 내부에서 space들을 link 시킨다.
+	void linkMap()
+	{
+		//edge(0,0) = startPoint
+		linkPrevNode(head, head);
+		//rightSide
+		Space* lastSpace = linkSpace(head, WIDTH, Direction::UP);
+
+		//edge(0,1)
+		Space* Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
+		linkPrevNode(Edge, lastSpace);
+
+		//upSide
+		lastSpace = linkSpace(Edge, 1, Direction::LEFT);
+
+		//edge(-1,1)
+		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
+		linkPrevNode(Edge, lastSpace);
+
+		//leftSide
+		lastSpace = linkSpace(Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
+
+		//edge(-1,0)
+		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+		linkPrevNode(Edge, lastSpace);
+
+		//downSide
+		lastSpace = linkSpace(Edge, head->offset, Direction::RIGHT);
+
+		return;
+	}
 }Linker;
 
 typedef struct Map
@@ -166,49 +198,13 @@ private:
 public:
 	Map():map(new char[SIZE + 1]),linker(new Linker)
 	{
-		createMap();
+		linker->linkMap();
 		setMapShape();	
 	}
 
 	~Map() { delete map; delete linker; }
 
-	//함수 내부에서 space들을 link 시킨다.
-	void createMap()
-	{
-		//edge(0,0) = startPoint
-		linker->linkPrevNode(linker->getHead(), linker->getHead());
-		setSpaceShape((WIDTH + 1) * (HEIGHT - 1) - 2);
-		//rightSide
-		Space* lastSpace = linker->linkSpace(linker->getHead(), WIDTH,Direction::UP);
-	
-		//edge(0,1)
-		Space* Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
-		linker->linkPrevNode(Edge, lastSpace);
-		setSpaceShape(lastSpace->offset + nextOffset(Direction::UP) - 1);
-
-		//upSide
-		lastSpace = linker->linkSpace( Edge, 1, Direction::LEFT);
-
-		//edge(-1,1)
-		Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
-		linker->linkPrevNode(Edge, lastSpace);
-		setSpaceShape(lastSpace->offset + nextOffset(Direction::LEFT));
-
-		//leftSide
-		lastSpace = linker->linkSpace(Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
-
-		//edge(-1,0)
-		Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
-		linker->linkPrevNode(Edge, lastSpace);
-		setSpaceShape(lastSpace->offset + nextOffset(Direction::DOWN) - 1);
-
-		//downSide
-		lastSpace = linker->linkSpace(Edge, linker->getHead()->offset, Direction::RIGHT);
-
-		return;
-	}
-
-	char* getMap() { return map; }
+	char* getMap() const { return map; }
 
 	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
 	void moveNext(int count, char shape)
