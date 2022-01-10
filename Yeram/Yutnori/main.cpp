@@ -22,7 +22,7 @@ typedef struct Space
 	//vector<Space*> link; //다음 Space 가르키는 주소<
 	Space* link; //다음 Space 가르키는 주소
 
-	void createSpace(Space* head, Space* prevNode, int offset, char* map,bool isEdge = false)
+	void createSpace(Space* head, Space* prevNode, int offset, bool isEdge = false)
 	{
 		//headnode,prevnode NULL 체크
 		if (head == NULL || prevNode == NULL) exit(1);
@@ -33,7 +33,7 @@ typedef struct Space
 		prevNode->link = this;
 		link = head;//원형리스트
 
-		drawSpace(offset, map);
+		//drawSpace(offset, map);
 	}
 
 	void drawSpace(int offset, char* map) //offset = array index
@@ -110,7 +110,8 @@ private:
 		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
 		{
 			Space* node = new Space;
-			node->createSpace(head, temp, i, map);
+			node->createSpace(head, temp, i);
+			node->drawSpace(i, map);
 			temp = node;
 		}
 
@@ -123,7 +124,8 @@ private:
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
 			Space* node = new Space;
-			node->createSpace(head, temp, i, map);
+			node->createSpace(head, temp, i);
+			node->drawSpace(i, map);
 			temp = node;
 			if (i != 0 && dir == Direction::DOWN) i--;
 		}
@@ -142,29 +144,29 @@ public:
 	void createMap()
 	{
 		//edge(0,0) = startPoint
-		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2, map);
-
+		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2);
+		head->drawSpace((WIDTH + 1) * (HEIGHT - 1) - 2, map);
 		//rightSide
 		Space* lastSpace = linkSpace(head, head, WIDTH,Direction::UP);
 		
 		//edge(0,1)
 		Space* Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1, map);
-
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
+		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::UP) - 1, map);
 		//upSide
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
 		//edge(-1,1)
 		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT), map);
-
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
+		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::LEFT), map);
 		//leftSide
 		lastSpace = linkSpace(head, Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
 
 		//edge(-1,0)
 		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1, map);
-
+		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::DOWN) - 1, map);
 		//downSide
 		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
