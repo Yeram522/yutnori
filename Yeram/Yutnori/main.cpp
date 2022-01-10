@@ -22,28 +22,15 @@ typedef struct Space
 	//vector<Space*> link; //다음 Space 가르키는 주소<
 	Space* link; //다음 Space 가르키는 주소
 
-	void createSpace(Space* head, Space* prevNode, int offset, bool isEdge = false)
+	Space(Space* head, Space* prevNode , int offset, bool isEdge = false)
 	{
 		//headnode,prevnode NULL 체크
 		if (head == NULL || prevNode == NULL) exit(1);
 
-		this->isEdge = isEdge; 
+		this->isEdge = isEdge;
 		this->offset = offset;
 
-		prevNode->link = this;
 		link = head;//원형리스트
-
-		//drawSpace(offset, map);
-	}
-
-	void drawSpace(int offset, char* map) //offset = array index
-	{
-		int secondline = WIDTH + 1;
-		if(0<= offset && offset<=WIDTH) secondline = WIDTH + 2;
-		map[offset] = '.';
-		map[offset+1] = '.';
-		map[offset+ secondline] = '.';
-		map[offset + secondline + 1] = '.';
 	}
 
 	void movePiece(char* map, char shape)
@@ -52,12 +39,22 @@ typedef struct Space
 	}
 }Space;
 
-
+typedef struct Linker
+{
+private:
+	Space* head;
+public:
+	void linkPrevNode(Space* node, Space* prevNode)
+	{
+		prevNode->link = node;
+	}
+}Linker;
 typedef struct Map
 {
 private:
 	char* map;
 	Space* head;
+	Linker* linker;
 	//대각선 WIDTH * 6;
 	int nextOffset(Direction dir) {
 		switch (dir)
@@ -75,8 +72,18 @@ private:
 		}
 	}
 
+	void setSpaceShape(int offset) //offset = array index
+	{
+		int secondline = WIDTH + 1;
+		if (0 <= offset && offset <= WIDTH) secondline = WIDTH + 2;
+		map[offset] = '.';
+		map[offset + 1] = '.';
+		map[offset + secondline] = '.';
+		map[offset + secondline + 1] = '.';
+	}
+
 	//draw line of map
-	void drawLine()
+	void setLineShape()
 	{
 		//DrawLine
 		int diagcount = 0;//diagonal count
@@ -109,9 +116,9 @@ private:
 
 		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
 		{
-			Space* node = new Space;
-			node->createSpace(head, temp, i);
-			node->drawSpace(i, map);
+			Space* node = new Space(head, temp, i);
+			linker->linkPrevNode(node, temp);
+			setSpaceShape(i);
 			temp = node;
 		}
 
@@ -123,9 +130,9 @@ private:
 		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
-			Space* node = new Space;
-			node->createSpace(head, temp, i);
-			node->drawSpace(i, map);
+			Space* node = new Space(head, temp, i);
+			linker->linkPrevNode(node, temp);
+			setSpaceShape(i);
 			temp = node;
 			if (i != 0 && dir == Direction::DOWN) i--;
 		}
@@ -133,40 +140,40 @@ private:
 		return temp; //return lastNode
 	}
 public:
-	Map():map(new char[SIZE + 1]),head(new Space)
+	Map():map(new char[SIZE + 1]),head(new Space(head, head, (WIDTH + 1)* (HEIGHT - 1) - 2)),linker(new Linker)
 	{
 		memset(map, ' ', SIZE);
 		map[SIZE] = '\0';
-		drawLine();
+		setLineShape();
+		linker->linkPrevNode(head, head);
 	}
 
 	//함수 내부에서 space들을 link 시킨다.
 	void createMap()
 	{
 		//edge(0,0) = startPoint
-		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2);
-		head->drawSpace((WIDTH + 1) * (HEIGHT - 1) - 2, map);
+		setSpaceShape((WIDTH + 1) * (HEIGHT - 1) - 2);
 		//rightSide
 		Space* lastSpace = linkSpace(head, head, WIDTH,Direction::UP);
-		
+	
 		//edge(0,1)
-		Space* Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
-		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::UP) - 1, map);
+		Space* Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::UP) - 1);
 		//upSide
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
 		//edge(-1,1)
-		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
-		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::LEFT), map);
+		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::LEFT));
 		//leftSide
 		lastSpace = linkSpace(head, Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
 
 		//edge(-1,0)
-		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
-		Edge->drawSpace(lastSpace->offset + nextOffset(Direction::DOWN) - 1, map);
+		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::DOWN) - 1);
 		//downSide
 		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
@@ -212,7 +219,6 @@ int main()
 		{
 			if (data == 'F') movedsteps[index]++;
 		}
-		//map.moveNext(movedsteps[index], turn.front());
 		count--;
 	}
 
