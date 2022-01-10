@@ -49,6 +49,7 @@ public:
 		prevNode->link = node;
 	}
 }Linker;
+
 typedef struct Map
 {
 private:
@@ -107,6 +108,21 @@ private:
 		}	
 	}
 
+	void setMapShape()
+	{
+		memset(map, ' ', SIZE);
+		map[SIZE] = '\0';
+
+		setLineShape();
+
+		Space* temp = head;
+		do
+		{
+			setSpaceShape(temp->offset);
+			temp = temp->link;
+		} while (temp != head);
+
+	}
 	//linking Space node
 	Space* linkSpace(Space* head, Space* startNode, int endOffset, Direction dir) {
 		Space* temp = startNode; //임시 pointer
@@ -118,7 +134,6 @@ private:
 		{
 			Space* node = new Space(head, temp, i);
 			linker->linkPrevNode(node, temp);
-			setSpaceShape(i);
 			temp = node;
 		}
 
@@ -132,7 +147,6 @@ private:
 		{
 			Space* node = new Space(head, temp, i);
 			linker->linkPrevNode(node, temp);
-			setSpaceShape(i);
 			temp = node;
 			if (i != 0 && dir == Direction::DOWN) i--;
 		}
@@ -142,16 +156,15 @@ private:
 public:
 	Map():map(new char[SIZE + 1]),head(new Space(head, head, (WIDTH + 1)* (HEIGHT - 1) - 2)),linker(new Linker)
 	{
-		memset(map, ' ', SIZE);
-		map[SIZE] = '\0';
-		setLineShape();
-		linker->linkPrevNode(head, head);
+		createMap();
+		setMapShape();	
 	}
 
 	//함수 내부에서 space들을 link 시킨다.
 	void createMap()
 	{
 		//edge(0,0) = startPoint
+		linker->linkPrevNode(head, head);
 		setSpaceShape((WIDTH + 1) * (HEIGHT - 1) - 2);
 		//rightSide
 		Space* lastSpace = linkSpace(head, head, WIDTH,Direction::UP);
@@ -160,6 +173,7 @@ public:
 		Space* Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
 		linker->linkPrevNode(Edge, lastSpace);
 		setSpaceShape(lastSpace->offset + nextOffset(Direction::UP) - 1);
+
 		//upSide
 		lastSpace = linkSpace(head, Edge, 1, Direction::LEFT);
 
@@ -167,6 +181,7 @@ public:
 		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
 		linker->linkPrevNode(Edge, lastSpace);
 		setSpaceShape(lastSpace->offset + nextOffset(Direction::LEFT));
+
 		//leftSide
 		lastSpace = linkSpace(head, Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
 
@@ -174,6 +189,7 @@ public:
 		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
 		linker->linkPrevNode(Edge, lastSpace);
 		setSpaceShape(lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+
 		//downSide
 		lastSpace = linkSpace(head, Edge, head->offset, Direction::RIGHT);
 
@@ -206,7 +222,6 @@ int main()
 	string turn;
 	Map map = Map();
 	int movedsteps[4] = {0,};//ABCD
-	map.createMap();
 
 	//횟수
 	scanf("%d ", &count);
