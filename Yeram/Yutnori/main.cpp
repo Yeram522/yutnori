@@ -14,6 +14,23 @@ enum class Direction {
 	LEFT
 };
 
+//대각선 WIDTH * 6;
+int nextOffset(Direction dir) {
+	switch (dir)
+	{
+	case Direction::UP:
+		return -(WIDTH + 1) * 6;
+	case Direction::DOWN:
+		return (WIDTH + 1) * 6 + 1;
+	case Direction::RIGHT:
+		return 6;
+	case Direction::LEFT:
+		return -6;
+	default:
+		break;
+	}
+}
+
 //part of Map -> map의 구성요소이다.
 typedef struct Space
 {
@@ -22,137 +39,91 @@ typedef struct Space
 	//vector<Space*> link; //다음 Space 가르키는 주소<
 	Space* link; //다음 Space 가르키는 주소
 
-	void createSpace(Space* head, Space* prevNode, int offset, bool isEdge = false)
+	Space(Space* head, Space* prevNode , int offset, bool isEdge = false)
 	{
 		//headnode,prevnode NULL 체크
 		if (head == NULL || prevNode == NULL) exit(1);
 
-		this->isEdge = isEdge; 
+		this->isEdge = isEdge;
 		this->offset = offset;
 
-		prevNode->link = this;
 		link = head;//원형리스트
 	}
 
-	void initSpace(int offset, char* map) //offset = array index
-	{
-		int secondline = WIDTH + 1;
-		if(0<= offset && offset<=WIDTH) secondline = WIDTH + 2;
-		map[offset] = '.';
-		map[offset+1] = '.';
-		map[offset+ secondline] = '.';
-		map[offset + secondline + 1] = '.';
-	}
+	~Space() { delete link; }
 
-	void moveSpace(char* map, char shape)
+	void movePiece(char* map, char shape)
 	{
 		map[offset] = shape;
 	}
 }Space;
 
-
 typedef struct Linker
 {
 private:
 	Space* head;
+public:
+	Linker() :head(new Space(head, head, (WIDTH + 1)* (HEIGHT - 1) - 2))
+	{}
 
-	//대각선 WIDTH * 6;
-	int nextOffset(Direction dir) {
-		switch (dir)
-		{
-		case Direction::UP:
-			return -(WIDTH + 1) * 6;
-		case Direction::DOWN:
-			return (WIDTH + 1) * 6 + 1;
-		case Direction::RIGHT:
-			return 6;
-		case Direction::LEFT:
-			return -6;
-		default:
-			break;
-		}
+	~Linker() { delete head; }
+
+	void linkPrevNode(Space* node, Space* prevNode)
+	{
+		prevNode->link = node;
 	}
 
 	//linking Space node
-	Space* linkSpace(char* map,Space* startNode, int endOffset, Direction dir) {
+	Space* linkSpace(Space* startNode, int endOffset, Direction dir) {
 		Space* temp = startNode; //임시 pointer
 		int startOffset = startNode->offset + nextOffset(dir);
 
-		if (dir == Direction::DOWN || dir == Direction::RIGHT) return linkSpace(map,temp, startOffset, endOffset, dir);
+		if (dir == Direction::DOWN || dir == Direction::RIGHT) return linkSpace(temp, startOffset, endOffset, dir);
 
 		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
 		{
-			Space* node = new Space;
-			node->createSpace(head, temp, i);
-			node->initSpace(i, map);//offset, map
+			Space* node = new Space(head, temp, i);
+			linkPrevNode(node, temp);
 			temp = node;
 		}
 
 		return temp; //return lastNode
 	}
 
-	Space* linkSpace(char* map,Space* temp, int startOffset, int endOffset, Direction dir)
+	Space* linkSpace(Space* temp, int startOffset, int endOffset, Direction dir)
 	{
 		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
-			Space* node = new Space;
-			node->createSpace(head, temp, i);
-			node->initSpace(i, map);//offset, map
+			Space* node = new Space(head, temp, i);
+			linkPrevNode(node, temp);
 			temp = node;
 			if (i != 0 && dir == Direction::DOWN) i--;
 		}
 
 		return temp; //return lastNode
 	}
-public:
-	void initLink(char* map)
-	{
-		//edge(0,0) = startPoint
-		head->createSpace(head, head, (WIDTH + 1) * (HEIGHT - 1) - 2);
-		head->initSpace((WIDTH + 1) * (HEIGHT - 1) - 2, map);//offset, map
-		//rightSide
-		Space* lastSpace = linkSpace(map,head, WIDTH, Direction::UP);
 
-		//edge(0,1)
-		Space* Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
-		Edge->initSpace(lastSpace->offset + nextOffset(Direction::UP) - 1, map);//offset, map
-		//upSide
-		lastSpace = linkSpace(map,Edge, 1, Direction::LEFT);
-
-		//edge(-1,1)
-		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
-		Edge->initSpace(lastSpace->offset + nextOffset(Direction::LEFT), map);//offset, map
-		//leftSide
-		lastSpace = linkSpace(map,Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
-
-		//edge(-1,0)
-		Edge = new Space;
-		Edge->createSpace(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
-		Edge->initSpace(lastSpace->offset + nextOffset(Direction::DOWN) - 1, map);//offset, map
-		//downSide
-		lastSpace = linkSpace(map,Edge, head->offset, Direction::RIGHT);
-
-		return;
-	}
-
-	Space* getHead() const
-	{
-		return head;
-	}
+	Space* getHead()  const  { return head; }
 }Linker;
 
 typedef struct Map
 {
 private:
 	char* map;
-	//Space* head;
 	Linker* linker;
 
-	//map 문자열을 세팅
-	void initMap()
+	void setSpaceShape(int offset) //offset = array index
+	{
+		int secondline = WIDTH + 1;
+		if (0 <= offset && offset <= WIDTH) secondline = WIDTH + 2;
+		map[offset] = '.';
+		map[offset + 1] = '.';
+		map[offset + secondline] = '.';
+		map[offset + secondline + 1] = '.';
+	}
+
+	void setLineShape()
 	{
 		//DrawLine
 		int diagcount = 0;//diagonal count
@@ -176,13 +147,65 @@ private:
 		}	
 	}
 
-public:
-	Map():map(new char[SIZE + 1]), linker(new Linker)
+	void setMapShape()
 	{
 		memset(map, ' ', SIZE);
 		map[SIZE] = '\0';
-		initMap();
-		linker->initLink(map);
+
+		setLineShape();
+
+		Space* temp = linker->getHead();
+		do
+		{
+			setSpaceShape(temp->offset);
+			temp = temp->link;
+		} while (temp != linker->getHead());
+
+	}
+
+public:
+	Map():map(new char[SIZE + 1]),linker(new Linker)
+	{
+		createMap();
+		setMapShape();	
+	}
+
+	~Map() { delete map; delete linker; }
+
+	//함수 내부에서 space들을 link 시킨다.
+	void createMap()
+	{
+		//edge(0,0) = startPoint
+		linker->linkPrevNode(linker->getHead(), linker->getHead());
+		setSpaceShape((WIDTH + 1) * (HEIGHT - 1) - 2);
+		//rightSide
+		Space* lastSpace = linker->linkSpace(linker->getHead(), WIDTH,Direction::UP);
+	
+		//edge(0,1)
+		Space* Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::UP) - 1);
+
+		//upSide
+		lastSpace = linker->linkSpace( Edge, 1, Direction::LEFT);
+
+		//edge(-1,1)
+		Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::LEFT));
+
+		//leftSide
+		lastSpace = linker->linkSpace(Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
+
+		//edge(-1,0)
+		Edge = new Space(linker->getHead(), lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+		linker->linkPrevNode(Edge, lastSpace);
+		setSpaceShape(lastSpace->offset + nextOffset(Direction::DOWN) - 1);
+
+		//downSide
+		lastSpace = linker->linkSpace(Edge, linker->getHead()->offset, Direction::RIGHT);
+
+		return;
 	}
 
 	char* getMap() { return map; }
@@ -190,12 +213,12 @@ public:
 	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
 	void moveNext(int count, char shape)
 	{
-		Space* tmp= linker->getHead();//원본을 훼손하면 안되서 복사
+		Space* tmp= linker->getHead();
 		while (1)
 		{
 			if (count == 0)
 			{
-				tmp->moveSpace(map, shape);
+				tmp->movePiece(map, shape);
 				break;
 			}
 			
@@ -211,7 +234,6 @@ int main()
 	string turn;
 	Map map = Map();
 	int movedsteps[4] = {0,};//ABCD
-	//map.createMap();
 
 	//횟수
 	scanf("%d ", &count);
@@ -224,7 +246,6 @@ int main()
 		{
 			if (data == 'F') movedsteps[index]++;
 		}
-
 		count--;
 	}
 
