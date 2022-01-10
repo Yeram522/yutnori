@@ -24,8 +24,6 @@ typedef struct Space
 		link = head;//원형리스트
 	}
 
-	~Space() { delete link; }
-
 	void movePiece(char* map, char shape)
 	{
 		map[offset] = shape;
@@ -63,7 +61,7 @@ private:
 	}
 
 	//linking Space node
-	Space* linkSpace(Space* startNode, int endOffset, Direction dir) {
+	Space* linkSpace(Space* startNode, int endOffset, Direction dir){
 		Space* temp = startNode; //임시 pointer
 		int startOffset = startNode->offset + nextOffset(dir);
 
@@ -79,7 +77,7 @@ private:
 		return temp; //return lastNode
 	}
 
-	Space* linkSpace(Space* temp, int startOffset, int endOffset, Direction dir)
+	Space* linkSpace(Space* temp, int startOffset, int endOffset, Direction dir) 
 	{
 		//((i==0)?nextOffset(dir): nextOffset(dir)- 1)
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
@@ -198,90 +196,89 @@ public:
 
 	char* getMap() const { return map; }
 
-	//얘는 말 구조체가 수행해야 할 함수 인 것 같다.
-	void moveNext(int count, char shape)
-	{
-		Space* tmp= linker->getHead();
-		while (1)
-		{
-			if (count == 0)
-			{
-				tmp->movePiece(map, shape);
-				break;
-			}
-			
-			tmp = tmp->link;		
-			count--;
-		}
-	}
+	void setMap(const int offset, const char shape) { map[offset] = shape; }
 }Map;
 
 typedef struct Token {
 	char shape; //말 모양
-	
-	int worldOffset;
+	bool active;
 	int localOffset;//말을 업게 될때 예외처리
+	Space* currentSpace;
 public:
-	int step; //이동칸수
-	Token(char shape):step(0)
+	Token(char shape, Map* map):localOffset(0), shape(shape), active(false)
 	{
-
-	}
-	void moveNext()
-	{
-		step++;
+		currentSpace = map->linker->getHead();
 	}
 
-	void moveNext(Map* map, int count)
+	void moveNext()//다음노드로 이동.
 	{
-		Space* tmp = map->linker->getHead();//이래도 되는 걸까/...?ㅠ
-		while (1)
+		if (!active) active = true;
+		currentSpace = currentSpace->link;
+	}
+
+	const bool isActive() { return active; }
+	const char getShape() const { return shape; }
+	const int getOffset() const { return currentSpace->offset; }
+};
+
+typedef struct Player {
+	vector<Token> tokens;
+public:
+	Player(Map* map,char nm1, char nm2, char nm3, char nm4)
+	{
+		tokens.push_back({ nm1,map });
+		tokens.push_back({ nm2,map });
+		tokens.push_back({ nm3,map });
+		tokens.push_back({ nm4,map });
+	}
+
+	void moveToken(string turn)
+	{
+		int index = turn.front() - tokens.front().getShape();//token의 이름
+
+		for (auto data : turn)
 		{
-			if (count == 0)
-			{
-				worldOffset = tmp->getOffset();//월드 포지션 저장.
-				break;
-			}
-
-			tmp = tmp->link;
-			count--;
+			if (data == 'F') tokens[index].moveNext();
 		}
 	}
+
+	void findValidSpace()
+	{
+
+	}
+
+	const vector<Token> getTokens() const { return tokens; }// read only
 };
+
 int main()
 {
 	int count;
 	string turn;
 
-	Map map = Map();
-	vector<Token> tokens
-	{
-		{'A'},
-		{'B'},
-		{'C'},
-		{'D'}
-	};
+	Map* map = new Map;
+	Player* player = new Player(map,'A','B','C','D');
 
 	scanf("%d ", &count);
 
 	while (count != 0)
 	{
 		getline(cin, turn);
-		int index = turn.front() - 'A';
-		for (auto data : turn)
-		{
-			if (data == 'F') tokens[index].moveNext();
-		}
+
+		player->moveToken(turn);
+
 		count--;
 	}
 
-	for (auto player : tokens)
+	for (auto token : player->getTokens())
 	{
-		static int i = 0; 
-		if (player.step == 0) continue;
-		if (player.step <= 20) map.moveNext(player.step, 'A' + i);
-		i++;
+		if (!token.isActive()) continue;
+		map->setMap(token.getOffset(), token.getShape());
 	}
 
-	printf("%s", map.getMap());
+	printf("%s", map->getMap());
+
+	delete map;
+	delete player;
+
+	return 0;
 }
