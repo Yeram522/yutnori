@@ -7,31 +7,6 @@ using namespace std;
 #define HEIGHT 32
 #define SIZE 33*32
 
-enum class Direction {
-	UP,
-	DOWN,
-	RIGHT,
-	LEFT
-};
-
-//대각선 WIDTH * 6;
-int nextOffset(Direction dir) {
-	switch (dir)
-	{
-	case Direction::UP:
-		return -(WIDTH + 1) * 6;
-	case Direction::DOWN:
-		return (WIDTH + 1) * 6 + 1;
-	case Direction::RIGHT:
-		return 6;
-	case Direction::LEFT:
-		return -6;
-	default:
-		break;
-	}
-}
-
-//part of Map -> map의 구성요소이다.
 typedef struct Space
 {
 	bool isEdge;//모서리인지 아닌지.
@@ -46,7 +21,6 @@ typedef struct Space
 
 		this->isEdge = isEdge;
 		this->offset = offset;
-
 		link = head;//원형리스트
 	}
 
@@ -56,6 +30,8 @@ typedef struct Space
 	{
 		map[offset] = shape;
 	}
+
+	int getOffset() const { return offset; };
 }Space;
 
 typedef struct Linker
@@ -63,9 +39,27 @@ typedef struct Linker
 private:
 	Space* head;
 
-	void linkPrevNode(Space* node, Space* prevNode)
-	{
-		prevNode->link = node;
+	enum class Direction {
+		UP,
+		DOWN,
+		RIGHT,
+		LEFT
+	};
+	//대각선 WIDTH * 6;
+	int nextOffset(Direction dir) {
+		switch (dir)
+		{
+		case Direction::UP:
+			return -(WIDTH + 1) * 6;
+		case Direction::DOWN:
+			return (WIDTH + 1) * 6 + 1;
+		case Direction::RIGHT:
+			return 6;
+		case Direction::LEFT:
+			return -6;
+		default:
+			break;
+		}
 	}
 
 	//linking Space node
@@ -78,7 +72,7 @@ private:
 		for (int i = startOffset; endOffset <= i; i += nextOffset(dir))
 		{
 			Space* node = new Space(head, temp, i);
-			linkPrevNode(node, temp);
+			temp->link = node;
 			temp = node;
 		}
 
@@ -91,7 +85,7 @@ private:
 		for (int i = startOffset; i < endOffset; i += nextOffset(dir))
 		{
 			Space* node = new Space(head, temp, i);
-			linkPrevNode(node, temp);
+			temp->link = node;
 			temp = node;
 			if (i != 0 && dir == Direction::DOWN) i--;
 		}
@@ -106,32 +100,29 @@ public:
 
 	Space* getHead()  const  { return head; }
 
-	//함수 내부에서 space들을 link 시킨다.
-	void linkMap()
+	void linkMapData()
 	{
 		//edge(0,0) = startPoint
-		linkPrevNode(head, head);
+		head->link = head;
+
 		//rightSide
 		Space* lastSpace = linkSpace(head, WIDTH, Direction::UP);
 
 		//edge(0,1)
 		Space* Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::UP) - 1);
-		linkPrevNode(Edge, lastSpace);
-
+		lastSpace->link = Edge;
 		//upSide
 		lastSpace = linkSpace(Edge, 1, Direction::LEFT);
 
 		//edge(-1,1)
 		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::LEFT));
-		linkPrevNode(Edge, lastSpace);
-
+		lastSpace->link = Edge;
 		//leftSide
 		lastSpace = linkSpace(Edge, SIZE + nextOffset(Direction::UP), Direction::DOWN);
 
 		//edge(-1,0)
 		Edge = new Space(head, lastSpace, lastSpace->offset + nextOffset(Direction::DOWN) - 1);
-		linkPrevNode(Edge, lastSpace);
-
+		lastSpace->link = Edge;
 		//downSide
 		lastSpace = linkSpace(Edge, head->offset, Direction::RIGHT);
 
@@ -195,10 +186,11 @@ private:
 
 	}
 
+	friend struct Token;
 public:
 	Map():map(new char[SIZE + 1]),linker(new Linker)
 	{
-		linker->linkMap();
+		linker->linkMapData();
 		setMapShape();	
 	}
 
@@ -222,16 +214,54 @@ public:
 			count--;
 		}
 	}
-};
+}Map;
 
+typedef struct Token {
+	char shape; //말 모양
+	
+	int worldOffset;
+	int localOffset;//말을 업게 될때 예외처리
+public:
+	int step; //이동칸수
+	Token(char shape):step(0)
+	{
+
+	}
+	void moveNext()
+	{
+		step++;
+	}
+
+	void moveNext(Map* map, int count)
+	{
+		Space* tmp = map->linker->getHead();//이래도 되는 걸까/...?ㅠ
+		while (1)
+		{
+			if (count == 0)
+			{
+				worldOffset = tmp->getOffset();//월드 포지션 저장.
+				break;
+			}
+
+			tmp = tmp->link;
+			count--;
+		}
+	}
+};
 int main()
 {
 	int count;
 	string turn;
-	Map map = Map();
-	int movedsteps[4] = {0,};//ABCD
 
-	//횟수
+	Map map = Map();
+	vector<Token> tokens
+	{
+		{'A'},
+		{'B'},
+		{'C'},
+		{'D'}
+	};
+
 	scanf("%d ", &count);
 
 	while (count != 0)
@@ -240,18 +270,18 @@ int main()
 		int index = turn.front() - 'A';
 		for (auto data : turn)
 		{
-			if (data == 'F') movedsteps[index]++;
+			if (data == 'F') tokens[index].moveNext();
 		}
 		count--;
 	}
 
-	for (auto player : movedsteps)
+	for (auto player : tokens)
 	{
-		static int i = 0; //static 써도 괜찮은강..? 아님 그냥 for문 index로 바꿔버릴까 고민중
-		if (player == 0) continue;
-		if(player <= 20) map.moveNext(player, 'A' + i);	 //20->한바퀴 의미
+		static int i = 0; 
+		if (player.step == 0) continue;
+		if (player.step <= 20) map.moveNext(player.step, 'A' + i);
 		i++;
 	}
-	
+
 	printf("%s", map.getMap());
 }
