@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
 using namespace std;
 
 #define WIDTH 32
@@ -19,7 +20,7 @@ public:
 	Space(Space* head, Space* prevNode , int offset, bool isEdge = false)
 	{
 		//headnode,prevnode NULL 체크
-		if (head == NULL || prevNode == NULL) exit(1);
+		if (head == NULL || prevNode == NULL) exit(0);
 
 		this->isEdge = isEdge;
 		this->offset = offset;
@@ -40,7 +41,7 @@ private:
 		RIGHT,
 		LEFT
 	};
-	//대각선 WIDTH * 6;
+	
 	int nextOffset(Direction dir) {
 		switch (dir)
 		{
@@ -106,6 +107,7 @@ public:
 		//edge(0,1)
 		Space* Edge = new Space(head, lastSpace, lastSpace->getOffset() + nextOffset(Direction::UP) - 1);
 		lastSpace->link = Edge;
+
 		//upSide
 		lastSpace = linkSpace(Edge, 1, Direction::LEFT);
 
@@ -131,6 +133,7 @@ private:
 	char* map;
 	Linker* linker;
 
+	
 	void setSpaceShape(int offset) //offset = array index
 	{
 		int secondline = WIDTH + 1;
@@ -179,6 +182,14 @@ private:
 			temp = temp->link;
 		} while (temp != linker->getHead());
 
+		//대각선 그리기;
+		int count = 5;
+		while (count != -1)
+		{
+			setSpaceShape((WIDTH * 5) * (count + 1) + WIDTH - 1);
+			setSpaceShape(((WIDTH + 2) * 5) * (count + 1) + 1);
+			count--;
+		}
 	}
 
 	friend struct Token;
@@ -187,6 +198,50 @@ public:
 	{
 		linker->linkMapData();
 		setMapShape();	
+
+		/*vector<string> mapsdata =
+		{
+			"..----..----..----..----..----..\n",
+			"..    ..    ..    ..    ..    ..\n",
+			"| \                          / |\n",
+			"|  \                        /  |\n",
+			"|   \                      /   |\n",
+			"|    ..                  ..    |\n",
+			"..   ..                  ..   ..\n",
+			"..     \                /     ..\n",
+			"|       \              /       |\n",
+			"|        \            /        |\n",
+			"|         ..        ..         |\n",
+			"|         ..        ..         |\n",
+			"..          \      /          ..\n",
+			"..           \    /           ..\n",
+			"|             \  /             |\n",
+			"|              ..              |\n",
+			"|              ..              |\n",
+			"|             /  \             |\n",
+			"..           /    \           ..\n",
+			"..          /      \          ..\n",
+			"|         ..        ..         |\n",
+			"|         ..        ..         |\n",
+			"|        /            \        |\n",
+			"|       /              \       |\n",
+			"..     /                \     ..\n"
+			"..   ..                  ..   ..\n",
+			"|    ..                  ..    |\n",
+			"|   /                      \   |\n",
+			"|  /                        \  |\n",
+			"| /                          \ |\n",
+			"..    ..    ..    ..    ..    ..\n",
+			"..----..----..----..----..----..\n"
+		};
+
+		string maps;
+		for (auto line : mapsdata)
+		{
+			maps.append(line);
+		}
+		
+		strcpy(map, maps.c_str());*/
 	}
 
 	~Map() { delete map; delete linker; }
@@ -201,23 +256,47 @@ public:
 struct Token {
 	char shape; //말 모양
 	bool active;
+	bool exit;
 	int localOffset;//말을 업게 될때 예외처리
 	Space* currentSpace;
-public:
-	Token(char shape, Map* map):localOffset(0), shape(shape), active(false)
+	Space* startSpace;
+	int setLocalOffset(int index)
 	{
-		currentSpace = map->linker->getHead();
+		switch (index)
+		{
+		case 0:
+			return 0;
+		case 1:
+			return 1;
+		case 2:
+			return (WIDTH + 1);
+		case 3:
+			return (WIDTH + 1) + 1;
+		}
+	}
+
+public:
+	Token(char shape, Map* map):localOffset(0), shape(shape), active(false), exit(false)
+	{
+		startSpace = map->linker->getHead();
+		currentSpace = startSpace;
+		localOffset = setLocalOffset(shape - 'A');
 	}
 
 	void moveNext()//다음노드로 이동.
 	{
+		if (active && currentSpace == startSpace) exit = true;
 		if (!active) active = true;
 		currentSpace = currentSpace->link;
 	}
 
 	const bool isActive() { return active; }
+	const bool isExit() { return exit; }
 	const char getShape() const { return shape; }
-	const int getOffset() const { return currentSpace->getOffset() + localOffset; }
+	const int getOffset() const { 
+		if(0 <= currentSpace->getOffset() && currentSpace->getOffset() <= WIDTH)return currentSpace->getOffset() + localOffset + 1;
+		return currentSpace->getOffset() + localOffset; 
+	}
 };
 
 struct Player {
@@ -234,18 +313,18 @@ public:
 	void moveToken(string turn)
 	{
 		int index = turn.front() - tokens.front().getShape();//token의 이름
-
+		int step=0;
 		for (auto data : turn)//B,F 개수 확인
 		{
-			if (data == 'F') tokens[index].moveNext();
+			if (data == 'F') step++; 
 		}
 
-		//개수 많큼 이동 했을 때 말이 겹치는지 확인.겹친다면 localOffset 변경
-	}
-
-	void findValidSpace()
-	{
-
+		if (step == 0)step = 5;
+		while (step != 0)
+		{
+			tokens[index].moveNext();
+			step--;
+		}
 	}
 
 	const vector<Token> getTokens() const { return tokens; }// read only
@@ -260,7 +339,7 @@ int main()
 	Player* player = new Player(map,'A','B','C','D');
 
 	scanf("%d ", &count);
-
+	 
 	while (count != 0)
 	{
 		getline(cin, turn);
@@ -272,7 +351,8 @@ int main()
 
 	for (auto token : player->getTokens())
 	{
-		if (!token.isActive()) continue;
+		if (!token.isActive() || token.isExit()) continue;
+		
 		map->setMap(token.getOffset(), token.getShape());
 	}
 
