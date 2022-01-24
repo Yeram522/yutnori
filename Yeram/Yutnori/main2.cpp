@@ -29,7 +29,11 @@ public:
 	void moveNext()
 	{
 		space = space->link;
-		if (space == head)isActive = false;
+		if (space->pos == make_pair(30, 30))
+		{
+			isActive = false;
+			return;
+		}
 	}
 
 	pair<int, int> getPos()
@@ -87,8 +91,49 @@ void linkSpace(Space* head)
 		temp->link = node;
 		temp = node;
 	}
-	//(X != Y)
-	//(X == Y)
+}
+
+void linkSpace(Token* token) //현재위치 노드를 삽입.
+{
+	Space* head = token->space;
+	pair<int, int> pos = head->pos;
+	Space* temp = head;//임시 포인터
+
+	if (pos == make_pair(30, 0))
+	{
+		for (int i = 0; i <= 5; i++)
+		{
+			Space* node = new Space(head, temp, make_pair(5 * (5 - i), (i + 1) * 5));
+			temp->link = node;
+			temp = node;
+		}
+
+		for (int i = 6; i <= 30; i += 6)
+		{
+			Space* node = new Space(head, temp, make_pair(i, 30));
+			temp->link = node;
+			temp = node;
+		}
+	}
+	else if (pos == make_pair(0, 0))
+	{
+		for (int i = 1; i <= 6; i++)
+		{
+			Space* node = new Space(head, temp, make_pair(5*i, 5 * i));
+			temp->link = node;
+			temp = node;
+		}
+	}
+	else if (pos == make_pair(15, 15))
+	{
+		for (int i = 4; i <= 6; i++)
+		{
+			Space* node = new Space(head, temp, make_pair(5 * i, 5 * i));
+			temp->link = node;
+			temp = node;
+		}
+	}
+
 }
 
 void drawMap(Space* head, vector<Token*> player)
@@ -216,9 +261,19 @@ int main()
 			step--;
 		}
 
+		//이동을 끝낸 지점이 모서리이면, 길을 바꾼다.
+		for (auto member : group)
+		{
+			linkSpace(member);
+		}
+
 		count--;
+
+		/*drawMap(head, player);
+		printf("\n");*/
 	}
 
+	
 	drawMap(head, player);
 	return 0;
 }
