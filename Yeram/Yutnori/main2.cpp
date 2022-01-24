@@ -25,7 +25,7 @@ public:
 	bool isActive;
 	char shape;
 	Space* space;
-	Token(char shape, Space* head):shape(shape), space(head), head(head), isActive(true){}
+	Token(char shape, Space* head) :shape(shape), space(head), head(head), isActive(true) {}
 	void moveNext()
 	{
 		space = space->link;
@@ -41,7 +41,12 @@ public:
 		else if (shape == 'C')
 			return make_pair(space->pos.first, space->pos.second + 1);
 		else if (shape == 'D')
-			return make_pair(space->pos.first+1, space->pos.second+1);
+			return make_pair(space->pos.first + 1, space->pos.second + 1);
+	}
+
+	pair<int, int> getSpacePos()
+	{
+		return space->pos;
 	}
 
 	void setAvtive() {
@@ -188,14 +193,26 @@ int main()
 			target = token;
 			break;
 		}
+
 		if (to_string(target->shape) != to_string(turn.front()))
 		{
 			target = new Token(turn.front(), head);
 			player.push_back(target);
 		}
+
+		vector<Token*> group;
+		for (auto member : player)
+		{
+			if (target->getSpacePos() == member->getSpacePos()) group.push_back(member);
+		}
+
+
 		while (step != 0)
-		{	
-			target->moveNext();
+		{
+			for (auto member : group)
+			{
+				member->moveNext();
+			}	
 			step--;
 		}
 
