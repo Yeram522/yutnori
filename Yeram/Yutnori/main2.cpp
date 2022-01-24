@@ -19,13 +19,17 @@ struct Space
 
 struct Token
 {
+private:
+	Space* head;
+public:
 	bool isActive;
 	char shape;
 	Space* space;
-	Token(char shape, Space* head):shape(shape), space(head), isActive(false){}
+	Token(char shape, Space* head):shape(shape), space(head), head(head), isActive(true){}
 	void moveNext()
 	{
 		space = space->link;
+		if (space == head)isActive = false;
 	}
 
 	pair<int, int> getPos()
@@ -74,7 +78,7 @@ void linkSpace(Space* head)
 	//(X,30)
 	for (int i = 6; i <30; i += 6)
 	{
-		Space* node = new Space(head, temp, make_pair(30,i));
+		Space* node = new Space(head, temp, make_pair(i,30));
 		temp->link = node;
 		temp = node;
 	}
@@ -125,6 +129,8 @@ void drawMap(Space* head, vector<Token*> player)
 	//setAvtive()
 	for (auto token : player)
 	{
+		if (!token->isActive) continue;
+
 		string tmp_string(1, token->shape);
 		map[token->getPos().second].replace(token->getPos().first, 1, tmp_string);
 	}
@@ -175,15 +181,20 @@ int main()
 			player.push_back(new Token(turn.front(), head));
 		}
 
-		while (step != 0)
+		Token* target = player.front();
+		for (auto token : player)
 		{
-			Token* target = player.front();
-			for (auto token : player)
-			{
-				if (to_string(token->shape) != turn) continue;
-				target = token;
-				break;
-			}
+			if (to_string(token->shape) != to_string(turn.front())) continue;
+			target = token;
+			break;
+		}
+		if (to_string(target->shape) != to_string(turn.front()))
+		{
+			target = new Token(turn.front(), head);
+			player.push_back(target);
+		}
+		while (step != 0)
+		{	
 			target->moveNext();
 			step--;
 		}
