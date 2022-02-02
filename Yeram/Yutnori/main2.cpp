@@ -5,8 +5,9 @@
 #include <cstring>
 using namespace std;
 
-struct Space
+class Space
 {
+public:
 	Space* link;
 	pair<int, int> pos;
 
@@ -17,7 +18,7 @@ struct Space
 	}
 };
 
-struct Token
+class Token
 {
 private:
 	Space* head;
@@ -154,14 +155,60 @@ void drawMap(Space* head, vector<Token*> player)
 	}
 }
 
+class Player
+{
 
+public:
+	Space* head;
+	vector<Token*> tokens;
+	Player():head(nullptr)
+	{
+		head = new Space(head, head, make_pair(30, 30));
+		linkSpace(head);
+	}
+
+	void work(int step,string turn)
+	{
+		//가상의 공간에서 말을 생성 및 이동 시킨다.
+		if (tokens.empty())//말이 하나도 없으면 생성한다.
+		{
+			tokens.push_back(new Token(turn.front(), head));
+		}
+
+		Token* target = tokens.front();
+		for (auto token : tokens)
+		{
+			if (to_string(token->shape) != to_string(turn.front())) continue;
+			target = token;
+			break;
+		}
+
+		if (to_string(target->shape) != to_string(turn.front()))
+		{
+			target = new Token(turn.front(), head);
+			tokens.push_back(target);
+		}
+
+		vector<Token*> group;
+		for (auto member : tokens)
+		{
+			if (target->getSpacePos() == member->getSpacePos()) group.push_back(member);
+		}
+
+
+		while (step != 0)
+		{
+			for (auto member : group)
+			{
+				member->moveNext();
+			}
+			step--;
+		}
+	}
+};
 int main()
 {
-	Space* head = nullptr;
-	vector<Token*> player;
-
-	head = new Space(head, head, make_pair(30, 30));
-	linkSpace(head);
+	Player* p1= new Player();
 	int count;
 	string turn;
 
@@ -180,45 +227,11 @@ int main()
 
 		if (step == 0) step = 5;
 
-		//가상의 공간에서 말을 생성 및 이동 시킨다.
-		if (player.empty())//말이 하나도 없으면 생성한다.
-		{
-			player.push_back(new Token(turn.front(), head));
-		}
-
-		Token* target = player.front();
-		for (auto token : player)
-		{
-			if (to_string(token->shape) != to_string(turn.front())) continue;
-			target = token;
-			break;
-		}
-
-		if (to_string(target->shape) != to_string(turn.front()))
-		{
-			target = new Token(turn.front(), head);
-			player.push_back(target);
-		}
-
-		vector<Token*> group;
-		for (auto member : player)
-		{
-			if (target->getSpacePos() == member->getSpacePos()) group.push_back(member);
-		}
-
-
-		while (step != 0)
-		{
-			for (auto member : group)
-			{
-				member->moveNext();
-			}	
-			step--;
-		}
+		p1->work(step, turn);
 
 		count--;
 	}
 
-	drawMap(head, player);
+	drawMap(p1->head, p1->tokens);
 	return 0;
 }
